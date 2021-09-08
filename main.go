@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 
-	"kevinstuffandthings/chat/server"
+	"github.com/kevinstuffandthings/chat/server"
 )
 
 func main() {

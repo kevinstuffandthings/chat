@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"kevinstuffandthings/chat/handshake"
+	"github.com/kevinstuffandthings/chat/handshake"
 )
 
 type ChatServer struct {

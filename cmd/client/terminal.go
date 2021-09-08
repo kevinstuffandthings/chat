@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"kevinstuffandthings/chat/handshake"
+	"github.com/kevinstuffandthings/chat/handshake"
 )
 
 func main() {
