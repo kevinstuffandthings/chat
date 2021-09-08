@@ -1,13 +1,9 @@
 package server
 
 type Command struct {
-	src  Message
-	name string
-	args string
-}
-
-func (c *Command) sender() string {
-	return c.src.Sender
+	Src  Message
+	Name string
+	Args string
 }
 
 type Handler interface {
@@ -18,13 +14,13 @@ type Handler interface {
 type BroadcastHandler struct{}
 
 func (h BroadcastHandler) Parse(msg Message) *Command {
-	return &Command{src: msg, args: msg.Contents}
+	return &Command{Src: msg, Args: msg.Contents}
 }
 
 func (h BroadcastHandler) Execute(cmd *Command, srv *ChatServer) error {
 	for u, c := range srv.users {
-		if u != cmd.src.Sender {
-			cmd.src.Send(c)
+		if u != cmd.Src.Sender {
+			cmd.Src.Send(c)
 		}
 	}
 	return nil

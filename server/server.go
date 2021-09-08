@@ -12,7 +12,7 @@ import (
 type ChatServer struct {
 	listener net.Listener
 	users    map[string]net.Conn
-	mutex    sync.Mutex
+	sync.Mutex
 }
 
 func New(listener net.Listener) ChatServer {
@@ -63,17 +63,25 @@ func (s *ChatServer) OnlineUsers() []string {
 	return users
 }
 
+func (s *ChatServer) ConnectionFor(user string) net.Conn {
+	c, ok := s.users[user]
+	if !ok {
+		return nil
+	}
+	return c
+}
+
 func (s *ChatServer) connectUser(user string, conn net.Conn) {
+	s.Lock()
+	defer s.Unlock()
 	s.broadcast(Message{Contents: fmt.Sprintf("User @%s has entered the chat", user)})
-	s.mutex.Lock()
 	s.users[user] = conn
-	s.mutex.Unlock()
 }
 
 func (s *ChatServer) disconnectUser(user string) {
-	s.mutex.Lock()
+	s.Lock()
+	defer s.Unlock()
 	delete(s.users, user)
-	s.mutex.Unlock()
 	s.broadcast(Message{Contents: fmt.Sprintf("User @%s has left the chat", user)})
 }
 

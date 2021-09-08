@@ -6,16 +6,20 @@ import (
 )
 
 type Message struct {
+	Type     string
 	Sender   string
 	Contents string
 }
 
 func (m Message) Send(c net.Conn) {
-	var user string
-	if m.Sender == "" {
-		user = "system"
-	} else {
-		user = fmt.Sprintf("@%s", m.Sender)
+	var text string
+	if m.Type != "" {
+		text = fmt.Sprintf("<%s> ", m.Type)
 	}
-	c.Write([]byte(fmt.Sprintf("%s: %s", user, m.Contents)))
+	if m.Sender != "" {
+		text += fmt.Sprintf("@%s", m.Sender)
+	} else {
+		text += "system"
+	}
+	c.Write([]byte(fmt.Sprintf("%s: %s", text, m.Contents)))
 }
