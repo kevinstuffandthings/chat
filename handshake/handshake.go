@@ -1,7 +1,6 @@
 package handshake
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -16,11 +15,13 @@ func Initiate(conn net.Conn, user string) error {
 	buf := make([]byte, 4)
 	_, err = conn.Read(buf)
 	if err != nil || string(buf[:2]) != "OK" {
-		return errors.New(fmt.Sprintf("Connection improperly ack'd: <%s>", buf))
+		return fmt.Errorf("connection improperly ack'd: <%s>", buf)
 	}
 
 	return nil
 }
+
+var handshakeRx *regexp.Regexp = regexp.MustCompile(`^<Connect:@([A-Za-z0-9_-]+)>`)
 
 func Accept(conn net.Conn) (string, error) {
 	buf := make([]byte, 1024)
@@ -29,12 +30,11 @@ func Accept(conn net.Conn) (string, error) {
 		return "", err
 	}
 
-	rx := regexp.MustCompile(`^<Connect:@([A-Za-z0-9_-]+)>`)
-	if !rx.Match(buf) {
+	if !handshakeRx.Match(buf) {
 		ack(conn, "ERR")
-		return "", errors.New(fmt.Sprintf("Invalid connection header <%s>", buf))
+		return "", fmt.Errorf("invalid connection header <%s>", buf)
 	}
-	uid := rx.ReplaceAllString(string(buf[:l]), "$1")
+	uid := handshakeRx.ReplaceAllString(string(buf[:l]), "$1")
 	ack(conn, "OK")
 
 	return uid, nil

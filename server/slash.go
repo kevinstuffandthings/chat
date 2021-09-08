@@ -8,14 +8,15 @@ import (
 
 type SlashCmdHandler struct{}
 
+var cmdRx *regexp.Regexp = regexp.MustCompile(`^\/([^\s]+)(.*)`)
+
 func (h SlashCmdHandler) Parse(msg Message) *Command {
 	if msg.Contents[0] != '/' {
 		return nil
 	}
 
 	cmd := &Command{Src: msg}
-	rx := regexp.MustCompile(`^\/([^\s]+)(.*)`)
-	match := rx.FindStringSubmatch(msg.Contents)
+	match := cmdRx.FindStringSubmatch(msg.Contents)
 
 	if len(match) >= 1 {
 		cmd.Name = match[1]
@@ -26,27 +27,35 @@ func (h SlashCmdHandler) Parse(msg Message) *Command {
 	return cmd
 }
 
+var (
+	dmRx *regexp.Regexp = regexp.MustCompile(`^@([^\s]+)\s+(.*)`)
+
+	msgUserNotOnline Message = Message{Contents: "User not online"}
+	msgBadDm         Message = Message{Contents: "Unable to understand dm"}
+	msgUnknownCmd    Message = Message{Contents: "Unknown command"}
+	msgHelp          Message = Message{Contents: "/users: get a list of all online users\n/dm @USER MSG: send a direct message to the specified user"}
+)
+
 func (h SlashCmdHandler) Execute(cmd *Command, srv *ChatServer) error {
 	user := srv.ConnectionFor(cmd.Src.Sender)
 	switch cmd.Name {
 	case "users":
 		msg := Message{Contents: fmt.Sprintf("Online: %s", strings.Join(srv.OnlineUsers(), ", "))}
-		msg.Send(user)
+		srv.SendMessage(msg, user)
 	case "dm":
-		rx := regexp.MustCompile(`^@([^\s]+)\s+(.*)`)
-		if match := rx.FindStringSubmatch(cmd.Args); len(match) == 3 {
+		if match := dmRx.FindStringSubmatch(cmd.Args); len(match) == 3 {
 			if c := srv.ConnectionFor(match[1]); c != nil {
-				Message{Type: "DM", Sender: cmd.Src.Sender, Contents: match[2]}.Send(c)
+				srv.SendMessage(Message{Type: "DM", Sender: cmd.Src.Sender, Contents: match[2]}, c)
 			} else {
-				Message{Contents: "User not online"}.Send(user)
+				srv.SendMessage(msgUserNotOnline, user)
 			}
 		} else {
-			Message{Contents: "Unable to understand dm"}.Send(user)
+			srv.SendMessage(msgBadDm, user)
 		}
 	case "help":
-		Message{Contents: "/users: get a list of all online users\n/dm @USER MSG: send a direct message to the specified user"}.Send(user)
+		srv.SendMessage(msgHelp, user)
 	default:
-		Message{Contents: "Unknown command"}.Send(user)
+		srv.SendMessage(msgUnknownCmd, user)
 	}
 	return nil
 }

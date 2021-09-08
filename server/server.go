@@ -71,6 +71,11 @@ func (s *ChatServer) ConnectionFor(user string) net.Conn {
 	return c
 }
 
+func (s *ChatServer) SendMessage(msg Message, conn net.Conn) error {
+	_, err := conn.Write([]byte(msg.String()))
+	return err
+}
+
 func (s *ChatServer) connectUser(user string, conn net.Conn) {
 	s.Lock()
 	defer s.Unlock()
@@ -87,7 +92,7 @@ func (s *ChatServer) disconnectUser(user string) {
 
 func (s *ChatServer) broadcast(message Message) {
 	for _, c := range s.users {
-		message.Send(c)
+		s.SendMessage(message, c)
 	}
 }
 

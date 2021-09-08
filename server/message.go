@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"net"
 )
 
 type Message struct {
@@ -11,7 +10,7 @@ type Message struct {
 	Contents string
 }
 
-func (m Message) Send(c net.Conn) {
+func (m Message) String() string {
 	var text string
 	if m.Type != "" {
 		text = fmt.Sprintf("<%s> ", m.Type)
@@ -21,5 +20,5 @@ func (m Message) Send(c net.Conn) {
 	} else {
 		text += "system"
 	}
-	c.Write([]byte(fmt.Sprintf("%s: %s", text, m.Contents)))
+	return fmt.Sprintf("%s: %s", text, m.Contents)
 }
