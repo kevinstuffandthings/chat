@@ -1,6 +1,8 @@
 # golang chat
 a useless chat server/client written in go, so i could try to learn stuff.
 
+![3 "people" chatting](terminal-chat.png)
+
 ## architecture
 ### server
 the server is at the top level. you could start it by running:
