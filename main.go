@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -9,7 +8,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
+
+	"kevinstuffandthings/chat/handshake"
 )
 
 func main() {
@@ -42,7 +42,7 @@ func (s *ChatServer) Start() {
 			continue
 		}
 
-		u, err := handshake(c)
+		u, err := handshake.Accept(c)
 		if err != nil {
 			fmt.Println("Unable to make handshake:", err)
 			continue
@@ -57,33 +57,7 @@ func (s *ChatServer) Start() {
 	}
 }
 
-func handshake(conn net.Conn) (string, error) {
-	buf := make([]byte, 1024)
-	l, err := conn.Read(buf)
-	if err != nil {
-		return "", err
-	}
-
-	rx := regexp.MustCompile(`^<Connect:@([A-Za-z0-9_-]+)>`)
-	if !rx.Match(buf) {
-		ack(conn, "ERR")
-		return "", errors.New(fmt.Sprintf("Invalid connection header <%s>", buf))
-	}
-	uid := rx.ReplaceAllString(string(buf[:l]), "$1")
-	fmt.Printf("User %s connected!\n", uid)
-	ack(conn, "OK")
-
-	return uid, nil
-}
-
-func ack(conn net.Conn, msg string) error {
-	if _, err := conn.Write([]byte(msg)); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *ChatServer) online() []string {
+func (s *ChatServer) onlineUsers() []string {
 	var users []string
 	for u, l := range s.users {
 		if l != nil {
@@ -115,21 +89,20 @@ func (s *ChatServer) handleUserConnection(user string, conn net.Conn) {
 }
 
 func (s *ChatServer) handleMessage(sender, message string) {
-	ts := ts()
 	if message == "/users" {
-		m := fmt.Sprintf("[%s] Online: %s", ts, strings.Join(s.online(), ", "))
+		m := fmt.Sprintf("Online: %s", strings.Join(s.onlineUsers(), ", "))
 		s.users[sender].Write([]byte(m))
 	} else if message[0] == '@' {
 		rx := regexp.MustCompile(`^@([^\s]+)\s+(.*)`)
 		if match := rx.FindStringSubmatch(message); len(match) == 3 {
 			if c, ok := s.users[match[1]]; ok {
-				c.Write([]byte(fmt.Sprintf("[%s] @%s <private>: %s", ts, sender, match[2])))
+				c.Write([]byte(fmt.Sprintf("@%s <private>: %s", sender, match[2])))
 			} else {
-				s.users[sender].Write([]byte(fmt.Sprintf("[%s] User not online", ts)))
+				s.users[sender].Write([]byte("User not online"))
 			}
 		}
 	} else {
-		m := fmt.Sprintf("[%s] @%s: %s", ts, sender, message)
+		m := fmt.Sprintf("@%s: %s", sender, message)
 		fmt.Println(m)
 		for u, c := range s.users {
 			if u != sender {
@@ -141,10 +114,6 @@ func (s *ChatServer) handleMessage(sender, message string) {
 
 func (s *ChatServer) broadcast(message string) {
 	for _, c := range s.users {
-		c.Write([]byte(fmt.Sprintf("[%s] system: %s", ts(), message)))
+		c.Write([]byte(fmt.Sprintf("system: %s", message)))
 	}
-}
-
-func ts() string {
-	return time.Now().Format("15:04:05")
 }

@@ -2,10 +2,12 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"net"
 	"os"
+	"time"
+
+	"kevinstuffandthings/chat/handshake"
 )
 
 func main() {
@@ -23,7 +25,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("%s\n", string(buf[:l]))
+			fmt.Printf("[%s] %s\n", time.Now().Format("15:04:05"), string(buf[:l]))
 		}
 	}()
 
@@ -41,16 +43,12 @@ func connect(addr string, user string) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = conn.Write([]byte(fmt.Sprintf("<Connect:@%s>", user)))
+
+	err = handshake.Initiate(conn, user)
 	if err != nil {
 		return nil, err
 	}
 
-	buf := make([]byte, 4)
-	_, err = conn.Read(buf)
-	if err != nil || string(buf[:2]) != "OK" {
-		return nil, errors.New(fmt.Sprintf("Connection improperly ack'd: <%s>", buf))
-	}
 	fmt.Println("You are connected!")
 	return conn, nil
 }
